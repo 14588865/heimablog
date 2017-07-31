@@ -1,5 +1,8 @@
 //  导入操作用户数据的model 模块
 var userModel = require('../model/userModel.js');
+//导入md5第三方加密模块
+var md5 = require('blueimp-md5');
+var config = require('../config.js');
 
 module.exports = {
     showRegisterPage(req, res) { //展示注册页面
@@ -14,6 +17,9 @@ module.exports = {
                 if (err) return res.json({ err_code: 1, msg: '注册失败！' });
                 if (results.length !== 0) return res.json({ err_code: 1, msg: '此用户名已存在，请更换其他用户名！' });
 
+                // 为了提高密码的安全性，我们需要在 注册新用户之前，先把 用户的密码进行 MD5 加密
+                // 在调用 md5() 方法加密的时候，使用两个参数：第一个是用户输的密码；第二个参数是：程序执行的提高安全性的盐
+                user.password = md5(user.password, config.pwdSalt);
                 userModel.registerNewUser(user, (err, results) => {
                     if (err) return res.json({ err_code: 1, msg: '注册失败！' });
                     if (results.affectedRows !== 1) return res.json({ err_code: 1, msg: '注册失败！' });
@@ -33,6 +39,7 @@ module.exports = {
         var loginUser = req.body;
         // 2. 根据登录信息，调用 Model 模块，查询此用户是否存在
         // 3. 如果存在，返回登录成功，否则返回登录失败
+        loginUser.password = md5(loginUser.password, config.pwdSalt);
         userModel.login(loginUser, (err, results) => {
                 if (err || results.length !== 1) return res.json({ err_code: 1, msg: '登录失败，请稍后再试！' });
 
